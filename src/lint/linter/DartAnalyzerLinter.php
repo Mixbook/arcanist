@@ -30,31 +30,35 @@ final class DartAnalyzerLinter extends ArcanistExternalLinter {
 
   protected function parseLinterOutput($path, $err, $stdout, $stderr) {
     $messages = array();
-    $lines = array_slice(explode("\n", $stderr), 0, -1);
 
-    foreach ($lines as $line) {
-      $parts = explode("|", $line);
+    // dartanalyzer exits with a non-zero status code on warnings and errors.
+    if ($err > 0) {
+      $lines = array_slice(explode("\n", $stderr), 0, -1);
 
-      $message = new ArcanistLintMessage();
-      $message->setPath($parts[3]);
-      $message->setLine($parts[4]);
-      $message->setChar($parts[5]);
-      $message->setCode($parts[2]);
-      $message->setDescription($parts[7]);
+      foreach ($lines as $line) {
+        $parts = explode("|", $line);
 
-      switch ($parts[0]) {
-        case "INFO":
-          $message->setSeverity(ArcanistLintSeverity::SEVERITY_ADVICE);
-          break;
-        case "WARNING":
-          $message->setSeverity(ArcanistLintSeverity::SEVERITY_WARNING);
-          break;
-        case "ERROR":
-          $message->setSeverity(ArcanistLintSeverity::SEVERITY_ERROR);
-          break;
+        $message = new ArcanistLintMessage();
+        $message->setPath($parts[3]);
+        $message->setLine($parts[4]);
+        $message->setChar($parts[5]);
+        $message->setCode($parts[2]);
+        $message->setDescription($parts[7]);
+
+        switch ($parts[0]) {
+          case "INFO":
+            $message->setSeverity(ArcanistLintSeverity::SEVERITY_ADVICE);
+            break;
+          case "WARNING":
+            $message->setSeverity(ArcanistLintSeverity::SEVERITY_WARNING);
+            break;
+          case "ERROR":
+            $message->setSeverity(ArcanistLintSeverity::SEVERITY_ERROR);
+            break;
+        }
+
+        $messages[] = $message;
       }
-
-      $messages[] = $message;
     }
 
     return $messages;
