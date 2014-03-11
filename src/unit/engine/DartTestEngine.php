@@ -20,22 +20,25 @@ final class DartTestEngine extends ArcanistBaseUnitTestEngine {
       list($code, $stdout, $stderr) = $future->resolve();
 
       if ($code > 0) {
-        preg_match_all("/(ERROR|FAIL):  ([\s\S]+?)(test -|test:)/", $stdout, $matches, PREG_SET_ORDER);
+        preg_match_all("/(ERROR|FAIL): ([\s\S]+?)(test -|test:)/", $stdout, $matches, PREG_SET_ORDER);
 
-        foreach ($matches as $match) {
-          $result = new ArcanistUnitTestResult();
-          $result->setUserData($match[2]);
+        // If no matches are found, then it probably indicates that there was something 
+        // wrong when running the tests. Mark that the tests are broken and dump the 
+        // Content Shell output.
+        if (empty($matches)) {
+          $broken_result = new ArcanistUnitTestResult();
+          $broken_result->setUserData($stdout);
+          $broken_result->setResult(ArcanistUnitTestResult::RESULT_BROKEN);
 
-          switch ($match[1]) {
-            case "ERROR":
-              $result->setResult(ArcanistUnitTestResult::RESULT_BROKEN);
-              break;
-            case "FAIL":
-              $result->setResult(ArcanistUnitTestResult::RESULT_FAIL);
-              break;
+          $results[] = $broken_result;
+        } else {
+          foreach ($matches as $match) {
+            $result = new ArcanistUnitTestResult();
+            $result->setUserData($match[2]);
+            $result->setResult(ArcanistUnitTestResult::RESULT_FAIL);
+
+            $results[] = $result;
           }
-
-          $results[] = $result;
         }
       }
     }
